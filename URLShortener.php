@@ -21,7 +21,7 @@ register_plugin(
 	"http://apps.smeanox.com",	// author website
 	"Allows to redirect any URLs to any other URLs",	// Plugin description
 	"pages",					// page type
-	"URLShortenerAdmin"		// main function (administration)
+	"URLShortenerAdmin"			// main function (administration)
 );
 
 add_action("pages-sidebar", "createSideMenu", array($thisfile, "URLShortener"));
@@ -71,7 +71,13 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 		
 		if(isset($_GET['resetXMLFile']))
 		{
-			unlink($URLShortenerXML);
+			rename($URLShortenerXML, $URLShortenerXML.".old");
+		}
+		if(isset($_GET['recoverXMLFile']))
+		{
+			rename($URLShortenerXML, $URLShortenerXML.".tmp");
+			rename($URLShortenerXML.".old", $URLShortenerXML);
+			rename($URLShortenerXML.".tmp", $URLShortenerXML.".old");
 		}
 		
 		if(isset($_POST['URLShortener_addURL']))
@@ -138,15 +144,15 @@ function URLShortenerAdmin(){
 ?>
     <h3>Config</h3>
     <p>
-    <form action="" method="post">
+    <form action="load.php?id=URLShortener" method="post">
     	<label for="URLShortener_prefix" class="URLShortener_smallLabel">URL prefix (<?=$SITEURL;?><u><?=$xml->config->prefix;?></u>shortForm)</label>
-    	<input type="text" class="text" id="URLShortener_prefix" name="URLShortener_prefix" value="<?=$xml->config->prefix;?>" placeholder="l/" />
+    	<input type="text" class="text" id="URLShortener_prefix" name="URLShortener_prefix" value="<?=$xml->config->prefix;?>" />
         <input type="submit" class="submit" id="URLShortener_changeConfig" name="URLShortener_changeConfig" value="Save" />
     </form>
     </p>
     <h3>Add URL</h3>
     <p>
-    <form action="" method="post">
+    <form action="load.php?id=URLShortener" method="post">
     	<input type="text" class="text" id="URLShortener_long" name="URLShortener_long" placeholder="URL" />
         <input type="text" class="text" id="URLShortener_short" name="URLShortener_short" placeholder="Short form" />
         <input type="submit" class="submit" id="URLShortener_addURL" name="URLShortener_addURL" value="Shorten it!" />
@@ -176,7 +182,7 @@ function checkConfigFile()
 		$xml = @new SimpleXMLElement("<URLShortener></URLShortener>");
 		$xmlConfig = $xml->addChild("config");
 		$xmlConfig->addChild("count", 0);
-		$xmlConfig->addChild("prefix", "l/");
+		$xmlConfig->addChild("prefix", "r/");
 		$xml->addChild("URLs");
 		$xml->asXML($URLShortenerXML);
 	}
