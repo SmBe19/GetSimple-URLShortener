@@ -78,8 +78,8 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 		{
 			if(strlen($_POST['URLShortener_long']) > 0 && strlen($_POST['URLShortener_short']) > 0)
 			{
-				$urlLong = $_POST['URLShortener_long'];
-				$urlShort = $_POST['URLShortener_short'];
+				$urlLong = trim($_POST['URLShortener_long']);
+				$urlShort = trim($_POST['URLShortener_short']);
 				
 				if(strpos($urlLong, ':') === false) $urlLong = "http://".$urlLong;
 				
@@ -89,14 +89,21 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 					checkConfigFile();
 					$xml = simplexml_load_file($URLShortenerXML);
 					
-					$xml->config->count++;
-					$newURL = $xml->URLs->addChild("URL");
-					$newURL->addAttribute("long", $urlLong);
-					$newURL->addAttribute("short", $urlShort);
-					$newURL->addAttribute("hits", 0);
-					$xml->asXML($URLShortenerXML);
-					
-					$success = "URL added";
+					if(!$xml->xpath("//URL[@short='".$urlShort."']"))
+					{
+						$xml->config->count++;
+						$newURL = $xml->URLs->addChild("URL");
+						$newURL->addAttribute("long", $urlLong);
+						$newURL->addAttribute("short", $urlShort);
+						$newURL->addAttribute("hits", 0);
+						$xml->asXML($URLShortenerXML);
+						
+						$success = "URL added";
+					}
+					else
+					{
+						$error = "Short form already exists";
+					}
 				}
 				else
 				{
@@ -154,7 +161,7 @@ function URLShortenerAdmin(){
 		
 		for($i = 0; $i < $xml->config->count; $i++)
 		{
-			echo '<tr>'.'<td>'.'<a target="_blank" href="'.$xml->URLs->URL[$i]['long'].'">'.$xml->URLs->URL[$i]['long'].'</a>'.'</td>'.'<td>'.'<a target="_blank" href="'.$SITEURL.$xml->config->prefix.$xml->URLs->URL[$i]['short'].'">'.$xml->URLs->URL[$i]['short'].'</a>'.'</td>'.'<td>'.$xml->URLs->URL[$i]['hits'].'</td>'.'<td class="delete"><a class="delconfirm" href="load.php?id=URLShortener&amp;delete='.$xml->URLs->URL[$i]['short'].'" title="Delete '.$xml->URLs->URL[$i]['short'].'">×</a></td>'.'</tr>';
+			echo '<tr>'.'<td>'.'<a target="_blank" href="'.$xml->URLs->URL[$i]['long'].'">'.$xml->URLs->URL[$i]['long'].'</a>'.'</td>'.'<td>'.'<a target="_blank" href="'.$SITEURL.$xml->config->prefix.$xml->URLs->URL[$i]['short'].'">'.$xml->URLs->URL[$i]['short'].'</a>'.'</td>'.'<td>'.$xml->URLs->URL[$i]['hits'].'</td>'.'<td class="delete"><a class="delconfirm" href="load.php?id=URLShortener&amp;delete='.$xml->URLs->URL[$i]['short'].'" title="Delete '.$xml->URLs->URL[$i]['short'].'?">×</a></td>'.'</tr>';
 		}
 		echo "</table>";
 	}
