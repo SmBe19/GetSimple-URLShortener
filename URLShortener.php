@@ -2,7 +2,7 @@
 /*
 Plugin Name: URLShortener
 Description: Allows to redirect any URLs to any other URLs
-Version: 0.1
+Version: 1.0
 Author: Benjamin Schmid
 Author URI: http://apps.smeanox.com
 */
@@ -16,7 +16,7 @@ $thisfile=basename(__FILE__, ".php");
 register_plugin(
 	$thisfile,					// Plugin id
 	"URLShortener",				// Plugin name
-	"0.1",						// Plugin version
+	"1.0",						// Plugin version
 	"Benjamin Schmid",			// Plugin author
 	"http://apps.smeanox.com",	// author website
 	"Allows to redirect any URLs to any other URLs",	// Plugin description
@@ -31,7 +31,7 @@ $URLShortenerXML = GSDATAOTHERPATH."URLShortener.xml";
 
 if(basename($_SERVER['PHP_SELF']) == "load.php")
 {
-	if($_GET['id'] == "URLShortener_css?v=0.1")
+	if($_GET['id'] == "URLShortener_css?v=1")
 	{
 		header("Content-Type: text/css; charset=utf-8");
 		?>
@@ -45,7 +45,7 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 	}
 	else if($_GET['id'] == "URLShortener")
 	{
-		register_style("URLShortener_css", $SITEURL.$GSADMIN."/load.php?id=URLShortener_css", 0.1, "screen");
+		register_style("URLShortener_css", $SITEURL.$GSADMIN."/load.php?id=URLShortener_css", 1.0, "screen");
 		queue_style("URLShortener_css", GSBACK);
 		
 		if(isset($_GET['delete']) && file_exists($URLShortenerXML) && strlen(trim($_GET['delete'])) > 0 && preg_match("/^[A-Za-z0-9\-_]*$/", trim($_GET['delete'])) == 1)
