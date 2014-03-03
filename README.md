@@ -1,2 +1,4 @@
-GetSimple Plugin to shorten URLs
+URLShortener
 -----
+
+GetSimple Plugin to shorten URLs
