@@ -7,6 +7,8 @@ Author: Benjamin Schmid
 Author URI: http://apps.smeanox.com
 */
 
+if(!defined('IN_GS')){ die('you cannot load this page directly.'); }
+
 # get correct id for plugin
 $thisfile=basename(__FILE__, ".php");
 
@@ -19,10 +21,11 @@ register_plugin(
 	"http://apps.smeanox.com",	// author website
 	"Allows to redirect any URLs to any other URLs",	// Plugin description
 	"pages",					// page type
-	"URLShortener_admin"		// main function (administration)
+	"URLShortenerAdmin"		// main function (administration)
 );
 
 add_action("pages-sidebar", "createSideMenu", array($thisfile, "URLShortener"));
+add_action('index-pretemplate','checkRedirect');
 
 $URLShortenerXML = GSDATAOTHERPATH."URLShortener.xml";
 
@@ -45,7 +48,7 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 		register_style("URLShortener_css", $SITEURL.$GSADMIN."/load.php?id=URLShortener_css", 0.1, "screen");
 		queue_style("URLShortener_css", GSBACK);
 		
-		if(isset($_GET['delete']) && file_exists($URLShortenerXML) && strlen(trim($_GET['delete'])) > 0)
+		if(isset($_GET['delete']) && file_exists($URLShortenerXML) && strlen(trim($_GET['delete'])) > 0 && preg_match("/^[A-Za-z0-9\-_]*$/", trim($_GET['delete'])) == 1)
 		{
 			$toDelete = trim($_GET['delete']);
 			$xml = simplexml_load_file($URLShortenerXML);
@@ -103,36 +106,33 @@ if(basename($_SERVER['PHP_SELF']) == "load.php")
 		}
 		else if(isset($_POST['URLShortener_changeConfig']))
 		{
-			if(strlen($_POST['URLShortener_prefix']) > 0)
+			$newPrefix = $_POST['URLShortener_prefix'];
+			if(preg_match("/^[A-Za-z0-9\/\-_]*$/", $newPrefix) == 1)
 			{
-				$newPrefix = $_POST['URLShortener_prefix'];
-				if(preg_match("/^[A-Za-z0-9\/\-_]*$/", $newPrefix) == 1)
-				{
-					checkConfigFile();
-					$xml = simplexml_load_file($URLShortenerXML);
-					
-					$xml->config->prefix = $newPrefix;
-					$xml->asXML($URLShortenerXML);
-					
-					$success = "Config saved";
-				}
-				else
-				{
-					$error = "Invalid characters";
-				}
+				checkConfigFile();
+				$xml = simplexml_load_file($URLShortenerXML);
+				
+				$xml->config->prefix = $newPrefix;
+				$xml->asXML($URLShortenerXML);
+				
+				$success = "Config saved";
+			}
+			else
+			{
+				$error = "Invalid characters";
 			}
 		}
 	}
 }
-function URLShortener_admin(){
-	global $URLShortenerXML;
+function URLShortenerAdmin(){
+	global $URLShortenerXML, $SITEURL;
 	checkConfigFile();
 	$xml = simplexml_load_file($URLShortenerXML);
 ?>
     <h3>Config</h3>
     <p>
     <form action="" method="post">
-    	<label for="URLShortener_prefix" class="URLShortener_smallLabel">URL prefix</label>
+    	<label for="URLShortener_prefix" class="URLShortener_smallLabel">URL prefix (<?=$SITEURL;?><u><?=$xml->config->prefix;?></u>shortForm)</label>
     	<input type="text" class="text" id="URLShortener_prefix" name="URLShortener_prefix" value="<?=$xml->config->prefix;?>" placeholder="l/" />
         <input type="submit" class="submit" id="URLShortener_changeConfig" name="URLShortener_changeConfig" value="Save" />
     </form>
@@ -154,7 +154,7 @@ function URLShortener_admin(){
 		
 		for($i = 0; $i < $xml->config->count; $i++)
 		{
-			echo '<tr>'.'<td>'.'<a target="_blank" href="'.$xml->URLs->URL[$i]['long'].'">'.$xml->URLs->URL[$i]['long'].'</a>'.'</td>'.'<td>'.$xml->URLs->URL[$i]['short'].'</td>'.'<td>'.$xml->URLs->URL[$i]['hits'].'</td>'.'<td class="delete"><a class="delconfirm" href="load.php?id=URLShortener&amp;delete='.$xml->URLs->URL[$i]['short'].'" title="Delete '.$xml->URLs->URL[$i]['short'].'">×</a></td>'.'</tr>';
+			echo '<tr>'.'<td>'.'<a target="_blank" href="'.$xml->URLs->URL[$i]['long'].'">'.$xml->URLs->URL[$i]['long'].'</a>'.'</td>'.'<td>'.'<a target="_blank" href="'.$SITEURL.$xml->config->prefix.$xml->URLs->URL[$i]['short'].'">'.$xml->URLs->URL[$i]['short'].'</a>'.'</td>'.'<td>'.$xml->URLs->URL[$i]['hits'].'</td>'.'<td class="delete"><a class="delconfirm" href="load.php?id=URLShortener&amp;delete='.$xml->URLs->URL[$i]['short'].'" title="Delete '.$xml->URLs->URL[$i]['short'].'">×</a></td>'.'</tr>';
 		}
 		echo "</table>";
 	}
@@ -172,6 +172,34 @@ function checkConfigFile()
 		$xmlConfig->addChild("prefix", "l/");
 		$xml->addChild("URLs");
 		$xml->asXML($URLShortenerXML);
+	}
+}
+
+function checkRedirect()
+{
+	global $URLShortenerXML, $SITEURL;
+	
+	if(file_exists($URLShortenerXML))
+	{
+		$xml = simplexml_load_file($URLShortenerXML);
+		
+		$requestURL = substr(rtrim($_SERVER['REQUEST_URI'], '/'), strlen(substr($SITEURL, intval(strpos($SITEURL, "://")) + 3)) - strlen($_SERVER['HTTP_HOST']));
+		
+		if(substr($requestURL, 0, strlen($xml->config->prefix)) == $xml->config->prefix)
+		{
+			$requestURL = substr($requestURL, strlen($xml->config->prefix));
+		
+			$redirectTo = $xml->xpath("//URL[@short='".$requestURL."']");
+			
+			if($redirectTo)
+			{
+				$redirectTo[0]['hits'] = intval($redirectTo[0]['hits']) + 1;
+				$xml->asXML($URLShortenerXML);
+				
+				header("Location: ".$redirectTo[0]['long'], true, 303);
+				die();
+			}
+		}
 	}
 }
 
